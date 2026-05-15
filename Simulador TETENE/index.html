@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador de conducción transitoria</title>
+  <style>
+    :root{
+      --bg:#eef7f8;
+      --panel:#ffffff;
+      --ink:#12343b;
+      --muted:#5f747b;
+      --accent:#0b7a88;
+      --accent2:#2aa198;
+      --warn:#b35c00;
+      --line:#d7e7ea;
+      --soft:#f5fbfc;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      background:linear-gradient(180deg,var(--bg),#ffffff);
+      color:var(--ink);
+    }
+    header{
+      padding:28px 24px 18px;
+      text-align:center;
+      background:linear-gradient(135deg,#073b4c,#0b7a88,#2aa198);
+      color:white;
+    }
+    header h1{margin:0 0 8px;font-size:28px;line-height:1.15}
+    header p{margin:4px 0;font-size:15px;opacity:.95}
+    .author{font-size:13px;opacity:.92;margin-top:10px}
+    main{max-width:1240px;margin:0 auto;padding:20px}
+    .grid{display:grid;grid-template-columns:410px 1fr;gap:18px;align-items:start}
+    .card{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:0 8px 24px rgba(20,70,80,.08);
+      padding:18px;
+    }
+    h2{font-size:18px;margin:0 0 14px;color:#073b4c}
+    h3{font-size:15px;margin:18px 0 10px;color:#0b5563}
+    label{display:block;font-size:12px;font-weight:bold;color:#274a51;margin:10px 0 4px}
+    input, select{
+      width:100%;
+      padding:9px 10px;
+      border:1px solid #bfd5d9;
+      border-radius:10px;
+      font-size:14px;
+      background:white;
+      color:var(--ink);
+    }
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
+    .note{
+      background:var(--soft);
+      border-left:4px solid var(--accent2);
+      padding:10px 12px;
+      border-radius:10px;
+      font-size:13px;
+      color:#25464d;
+      line-height:1.42;
+      margin:12px 0;
+    }
+    button{
+      width:100%;
+      border:0;
+      border-radius:13px;
+      padding:12px 14px;
+      margin-top:14px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:white;
+      font-weight:bold;
+      font-size:15px;
+      cursor:pointer;
+      box-shadow:0 6px 14px rgba(11,122,136,.22);
+    }
+    button:hover{filter:brightness(.98)}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+    .metric{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:12px;min-height:78px}
+    .metric .k{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .metric .v{font-size:20px;font-weight:bold;color:#073b4c}
+    .metric .s{font-size:11px;color:var(--muted);margin-top:3px}
+    .pill{display:inline-block;border-radius:999px;padding:5px 10px;font-weight:bold;font-size:12px;margin-top:6px}
+    .pill.low{background:#e7f8ef;color:#167040}
+    .pill.mid{background:#fff4d9;color:#8a5a00}
+    .pill.high{background:#fde9e7;color:#9b2c1f}
+    canvas{width:100%;height:330px;border:1px solid var(--line);border-radius:14px;background:white}
+    .outgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .resultbox{background:#ffffff;border:1px solid var(--line);border-radius:14px;padding:14px;line-height:1.45;font-size:14px}
+    .resultbox strong{color:#073b4c}
+    table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+    th,td{border-bottom:1px solid var(--line);padding:8px;text-align:right}
+    th:first-child,td:first-child{text-align:left}
+    th{color:#0b5563;background:var(--soft)}
+    .small{font-size:12px;color:var(--muted);line-height:1.4}
+    .footer{margin-top:16px;font-size:12px;color:var(--muted);line-height:1.45}
+    .hidden{display:none}
+    @media(max-width:980px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}.outgrid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Simulador de transferencia de energía térmica en estado no estacionario</h1>
+  <p>Conducción transitoria en placa, cilindro y esfera con frontera convectiva</p>
+  <p class="author">Ing. Juan M. Alderete<br/>Facultad de Ingeniería y Ciencias Exactas<br/>UADE</p>
+</header>
+
+<main>
+  <div class="grid">
+    <section class="card">
+      <h2>1. Datos del sistema</h2>
+
+      <label>Geometría</label>
+      <select id="geom">
+        <option value="slab">Placa plana</option>
+        <option value="cylinder">Cilindro largo</option>
+        <option value="sphere">Esfera</option>
+      </select>
+
+      <div id="slabModeBox">
+        <label>Condición de la placa</label>
+        <select id="slabMode">
+          <option value="twoFaces">Dos caras expuestas al fluido</option>
+          <option value="oneInsulated">Una cara aislada y una cara expuesta</option>
+        </select>
+        <div class="hint">Para dos caras expuestas se usa Lc = espesor/2. Para una cara aislada se usa Lc = espesor completo.</div>
+      </div>
+
+      <div id="dimSlab">
+        <label>Espesor de placa, e [m]</label>
+        <input id="thickness" type="number" step="any" value="0.04">
+      </div>
+      <div id="dimRadius" class="hidden">
+        <label>Radio externo, R [m]</label>
+        <input id="radius" type="number" step="any" value="0.025">
+      </div>
+
+      <h3>Propiedades térmicas</h3>
+      <div class="row3">
+        <div><label>k [W/m·K]</label><input id="k" type="number" step="any" value="0.52"></div>
+        <div><label>ρ [kg/m³]</label><input id="rho" type="number" step="any" value="1050"></div>
+        <div><label>Cp [J/kg·K]</label><input id="cp" type="number" step="any" value="3600"></div>
+      </div>
+
+      <h3>Condición inicial y fluido</h3>
+      <div class="row3">
+        <div><label>Ti [°C]</label><input id="Ti" type="number" step="any" value="20"></div>
+        <div><label>T∞ [°C]</label><input id="Tinf" type="number" step="any" value="90"></div>
+        <div><label>h [W/m²·K]</label><input id="h" type="number" step="any" value="80"></div>
+      </div>
+
+      <h3>Consulta de cálculo</h3>
+      <label>Modo de cálculo</label>
+      <select id="calcMode">
+        <option value="tempAtTime">Calcular temperatura dado tiempo y profundidad</option>
+        <option value="timeToTemp">Calcular tiempo para alcanzar una temperatura en un punto</option>
+      </select>
+
+      <div class="row">
+        <div>
+          <label>Profundidad desde la superficie expuesta [m]</label>
+          <input id="depth" type="number" step="any" value="0.01">
+          <div class="hint">0 corresponde a la superficie. El valor máximo es Lc.</div>
+        </div>
+        <div id="timeBox">
+          <label>Tiempo [s]</label>
+          <input id="time" type="number" step="any" value="600">
+        </div>
+        <div id="targetBox" class="hidden">
+          <label>Temperatura objetivo [°C]</label>
+          <input id="targetT" type="number" step="any" value="75">
+        </div>
+      </div>
+
+      <button onclick="runSimulation()">Calcular</button>
+
+      <div class="note">
+        El simulador usa un esquema numérico unidimensional por volúmenes finitos. Didácticamente, conserva la clasificación por Biot: sistema concentrado, conducción interna dominante o resistencia mixta.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. Resultados principales</h2>
+      <div class="metrics">
+        <div class="metric"><div class="k">Biot</div><div class="v" id="biOut">—</div><div class="s" id="biClass">—</div></div>
+        <div class="metric"><div class="k">Fourier</div><div class="v" id="foOut">—</div><div class="s">Fo = αt/Lc²</div></div>
+        <div class="metric"><div class="k">Difusividad</div><div class="v" id="alphaOut">—</div><div class="s">α = k/(ρCp)</div></div>
+        <div class="metric"><div class="k">Longitud característica</div><div class="v" id="lcOut">—</div><div class="s">según geometría</div></div>
+      </div>
+
+      <div class="outgrid">
+        <div class="resultbox" id="answerBox">Ingrese los datos y presione calcular.</div>
+        <div class="resultbox" id="methodBox">Aquí aparecerá el método recomendado según Biot.</div>
+      </div>
+
+      <h3>Perfil de temperatura</h3>
+      <canvas id="profile" width="820" height="330"></canvas>
+      <div class="small">La coordenada horizontal representa profundidad desde la superficie expuesta hacia el interior del sólido. En placa de dos caras, el máximo es la mitad del espesor; en placa con una cara aislada, el espesor completo.</div>
+
+      <h3>Tabla de perfil</h3>
+      <div id="tableBox"></div>
+
+      <div class="footer">
+        Criterios adoptados: Bi &lt; 0,1 → temperatura interna prácticamente uniforme; 0,1 ≤ Bi ≤ 40 → resistencia interna y externa relevantes; Bi &gt; 40 → resistencia convectiva despreciable frente a la conducción interna. Para geometrías finitas, el cálculo numérico reemplaza el uso manual de gráficas de Gurney-Lurie/Heisler.
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+
+$('geom').addEventListener('change', () => {
+  const g = $('geom').value;
+  $('slabModeBox').classList.toggle('hidden', g !== 'slab');
+  $('dimSlab').classList.toggle('hidden', g !== 'slab');
+  $('dimRadius').classList.toggle('hidden', g === 'slab');
+});
+$('calcMode').addEventListener('change', () => {
+  const m = $('calcMode').value;
+  $('timeBox').classList.toggle('hidden', m !== 'tempAtTime');
+  $('targetBox').classList.toggle('hidden', m !== 'timeToTemp');
+});
+
+function val(id){ return parseFloat($(id).value); }
+function fmt(x, digits=4){
+  if(!isFinite(x)) return '—';
+  if(Math.abs(x) >= 1000 || Math.abs(x) < 0.001 && x !== 0) return x.toExponential(3);
+  return x.toFixed(digits).replace(/\.0+$/,'').replace(/(\.\d*?)0+$/,'$1');
+}
+function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
+
+function getParams(){
+  const geom = $('geom').value;
+  const slabMode = $('slabMode').value;
+  const thickness = val('thickness');
+  const radius = val('radius');
+  const L = geom === 'slab' ? (slabMode === 'twoFaces' ? thickness/2 : thickness) : radius;
+  const m = geom === 'slab' ? 0 : (geom === 'cylinder' ? 1 : 2);
+  return {
+    geom, slabMode, thickness, radius, L, m,
+    k:val('k'), rho:val('rho'), cp:val('cp'), Ti:val('Ti'), Tinf:val('Tinf'), h:val('h'),
+    depth:val('depth')
+  };
+}
+
+function validate(p){
+  const nums = ['L','k','rho','cp','h'];
+  for(const n of nums){ if(!isFinite(p[n]) || p[n] <= 0) throw new Error('Revise los datos: dimensiones, propiedades y h deben ser positivos.'); }
+  if(!isFinite(p.Ti) || !isFinite(p.Tinf)) throw new Error('Revise las temperaturas.');
+  if(!isFinite(p.depth) || p.depth < 0) throw new Error('La profundidad debe ser mayor o igual que cero.');
+  if(p.depth > p.L) throw new Error('La profundidad no puede superar la longitud característica de esta configuración.');
+}
+
+function biClass(Bi){
+  if(Bi < 0.1) return {txt:'Control externo / sistema concentrado', cls:'low', method:'Como Bi < 0,1, los gradientes internos son pequeños. La temperatura del sólido puede aproximarse como uniforme y se recomienda usar el modelo de capacitancia global: la resistencia dominante está en la película externa.'};
+  if(Bi > 40) return {txt:'Control interno dominante', cls:'high', method:'Como Bi > 40, la resistencia convectiva es relativamente pequeña. La superficie se aproxima rápidamente a la temperatura del fluido y el control principal está en la conducción interna. Para tiempos cortos puede usarse la solución con función error del sólido semiinfinito; el simulador resuelve el perfil completo por cálculo numérico.'};
+  return {txt:'Control mixto', cls:'mid', method:'Como 0,1 ≤ Bi ≤ 40, no puede despreciarse ni la resistencia interna ni la externa. Conceptualmente corresponde usar gráficas de Gurney-Lurie/Heisler o sus soluciones equivalentes. Aquí se reemplazan por un cálculo numérico transitorio.'};
+}
+
+function makeGrid(p, N=90){
+  const dr = p.L/N;
+  const r = Array.from({length:N}, (_,i)=>(i+0.5)*dr);
+  const rw = Array.from({length:N}, (_,i)=>i*dr);
+  const re = Array.from({length:N}, (_,i)=>(i+1)*dr);
+  function vol(i){
+    if(p.m===0) return re[i]-rw[i];
+    if(p.m===1) return (re[i]*re[i]-rw[i]*rw[i])/2;
+    return (re[i]**3-rw[i]**3)/3;
+  }
+  function area(x){
+    if(p.m===0) return 1;
+    if(p.m===1) return Math.max(x,0);
+    return Math.max(x*x,0);
+  }
+  const V = r.map((_,i)=>vol(i));
+  const Aw = rw.map(area), Ae = re.map(area);
+  return {N,dr,r,rw,re,V,Aw,Ae};
+}
+
+function stableDt(p, grid){
+  const {N,dr,V,Aw,Ae} = grid;
+  let dtMin = Infinity;
+  for(let i=0;i<N;i++){
+    let G = 0;
+    if(i>0) G += p.k*Aw[i]/dr;
+    if(i<N-1) G += p.k*Ae[i]/dr;
+    else {
+      const Rtot = dr/(2*p.k) + 1/p.h;
+      G += Ae[i]/Rtot;
+    }
+    const cap = p.rho*p.cp*V[i];
+    dtMin = Math.min(dtMin, 0.42*cap/G);
+  }
+  return dtMin;
+}
+
+function advanceExplicit(T, p, grid, dt){
+  const {N,dr,V,Aw,Ae} = grid;
+  const newT = T.slice();
+  for(let i=0;i<N;i++){
+    let sum = 0;
+    if(i>0){
+      const Gw = p.k*Aw[i]/dr;
+      sum += Gw*(T[i-1]-T[i]);
+    }
+    if(i<N-1){
+      const Ge = p.k*Ae[i]/dr;
+      sum += Ge*(T[i+1]-T[i]);
+    } else {
+      const Rtot = dr/(2*p.k) + 1/p.h;
+      const Gb = Ae[i]/Rtot;
+      sum += Gb*(p.Tinf - T[i]);
+    }
+    newT[i] = T[i] + dt*sum/(p.rho*p.cp*V[i]);
+  }
+  return newT;
+}
+
+function simulate(p, t, N=90){
+  const grid = makeGrid(p,N);
+  let T = Array(N).fill(p.Ti);
+  if(t <= 0) return {T, grid};
+  const dtMax = stableDt(p, grid);
+  let steps = Math.ceil(t/dtMax);
+  if(steps > 160000){
+    N = 60;
+    const g2 = makeGrid(p,N);
+    T = Array(N).fill(p.Ti);
+    steps = Math.ceil(t/stableDt(p,g2));
+    return simulateWithGrid(p,t,g2,T,steps);
+  }
+  return simulateWithGrid(p,t,grid,T,steps);
+}
+function simulateWithGrid(p,t,grid,T,steps){
+  const dt = t/Math.max(1,steps);
+  for(let s=0;s<steps;s++) T = advanceExplicit(T,p,grid,dt);
+  return {T,grid};
+}
+
+function tempAtDepth(sim, p, depth){
+  const xFromCenter = p.L - depth;
+  const {T,grid} = sim;
+  const {N,dr} = grid;
+  let idx = Math.floor(xFromCenter/dr);
+  idx = clamp(idx,0,N-1);
+  return T[idx];
+}
+
+function profileFromSim(sim,p,points=31){
+  const arr=[];
+  for(let j=0;j<points;j++){
+    const d = p.L*j/(points-1);
+    arr.push({depth:d,T:tempAtDepth(sim,p,d)});
+  }
+  return arr;
+}
+
+function lumpedTemperature(p,t){
+  // Se usa Lc = V/A expuesta según la convención ingresada.
+  const tau = p.rho*p.cp*p.L/p.h;
+  return p.Tinf + (p.Ti-p.Tinf)*Math.exp(-t/tau);
+}
+
+function findTimeToTarget(p,target){
+  const initial = p.Ti;
+  const final = p.Tinf;
+  const heating = final > initial;
+  if(heating && (target <= initial)) return 0;
+  if(!heating && (target >= initial)) return 0;
+  if(heating && target >= final) throw new Error('La temperatura objetivo no puede superar o igualar la temperatura del fluido para un calentamiento asintótico.');
+  if(!heating && target <= final) throw new Error('La temperatura objetivo no puede ser menor o igual que la temperatura del fluido para un enfriamiento asintótico.');
+
+  let lo=0, hi=60;
+  for(let iter=0;iter<28;iter++){
+    const sim=simulate(p,hi,70);
+    const T=tempAtDepth(sim,p,p.depth);
+    if((heating && T>=target) || (!heating && T<=target)) break;
+    hi*=2;
+    if(hi>2e7) throw new Error('No se alcanzó la temperatura objetivo dentro del rango de búsqueda.');
+  }
+  for(let iter=0;iter<34;iter++){
+    const mid=(lo+hi)/2;
+    const sim=simulate(p,mid,70);
+    const T=tempAtDepth(sim,p,p.depth);
+    if((heating && T>=target) || (!heating && T<=target)) hi=mid; else lo=mid;
+  }
+  return hi;
+}
+
+function drawProfile(profile,p,queryDepth,queryT){
+  const c=$('profile'), ctx=c.getContext('2d');
+  const W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);
+  const padL=62,padR=22,padT=22,padB=48;
+  const xmin=0,xmax=p.L;
+  const temps=profile.map(o=>o.T).concat([p.Ti,p.Tinf]);
+  const ymin=Math.min(...temps)-3, ymax=Math.max(...temps)+3;
+  function X(x){return padL+(x-xmin)/(xmax-xmin)*(W-padL-padR)}
+  function Y(y){return H-padB-(y-ymin)/(ymax-ymin)*(H-padT-padB)}
+  ctx.strokeStyle='#d7e7ea';ctx.lineWidth=1;
+  ctx.font='12px Arial';ctx.fillStyle='#5f747b';
+  for(let i=0;i<=5;i++){
+    const x=xmin+(xmax-xmin)*i/5;
+    ctx.beginPath();ctx.moveTo(X(x),padT);ctx.lineTo(X(x),H-padB);ctx.stroke();
+    ctx.fillText(fmt(x,3),X(x)-12,H-padB+20);
+  }
+  for(let i=0;i<=5;i++){
+    const y=ymin+(ymax-ymin)*i/5;
+    ctx.beginPath();ctx.moveTo(padL,Y(y));ctx.lineTo(W-padR,Y(y));ctx.stroke();
+    ctx.fillText(fmt(y,1),12,Y(y)+4);
+  }
+  ctx.strokeStyle='#0b7a88';ctx.lineWidth=3;ctx.beginPath();
+  profile.forEach((o,i)=>{ if(i===0)ctx.moveTo(X(o.depth),Y(o.T)); else ctx.lineTo(X(o.depth),Y(o.T)); });
+  ctx.stroke();
+  ctx.fillStyle='#073b4c';ctx.font='13px Arial';
+  ctx.fillText('Profundidad desde la superficie [m]', W/2-85, H-12);
+  ctx.save();ctx.translate(18,H/2+60);ctx.rotate(-Math.PI/2);ctx.fillText('Temperatura [°C]',0,0);ctx.restore();
+  if(isFinite(queryDepth) && isFinite(queryT)){
+    ctx.fillStyle='#b35c00';
+    ctx.beginPath();ctx.arc(X(queryDepth),Y(queryT),5,0,2*Math.PI);ctx.fill();
+    ctx.fillText('punto consultado', X(queryDepth)+8, Y(queryT)-8);
+  }
+}
+
+function makeTable(profile){
+  let html='<table><thead><tr><th>Profundidad [m]</th><th>Temperatura [°C]</th></tr></thead><tbody>';
+  profile.filter((_,i)=>i%3===0 || i===profile.length-1).forEach(o=>{
+    html+=`<tr><td>${fmt(o.depth,4)}</td><td>${fmt(o.T,2)}</td></tr>`;
+  });
+  html+='</tbody></table>';
+  $('tableBox').innerHTML=html;
+}
+
+function runSimulation(){
+  try{
+    const p=getParams(); validate(p);
+    const alpha=p.k/(p.rho*p.cp);
+    const Bi=p.h*p.L/p.k;
+    const bc=biClass(Bi);
+    let t, queryT, ans;
+    if($('calcMode').value==='tempAtTime'){
+      t=val('time');
+      if(!isFinite(t)||t<0) throw new Error('El tiempo debe ser mayor o igual que cero.');
+      const sim=simulate(p,t);
+      queryT=tempAtDepth(sim,p,p.depth);
+      const lump=lumpedTemperature(p,t);
+      ans=`<strong>Temperatura calculada:</strong> ${fmt(queryT,2)} °C<br><strong>Profundidad:</strong> ${fmt(p.depth,4)} m desde la superficie<br><strong>Tiempo:</strong> ${fmt(t,2)} s (${fmt(t/60,2)} min)<br><br><span class="small">Referencia por sistema concentrado: ${fmt(lump,2)} °C. Esta referencia es válida principalmente cuando Bi &lt; 0,1.</span>`;
+      const profile=profileFromSim(sim,p);
+      drawProfile(profile,p,p.depth,queryT); makeTable(profile);
+    } else {
+      const target=val('targetT');
+      if(!isFinite(target)) throw new Error('Revise la temperatura objetivo.');
+      t=findTimeToTarget(p,target);
+      const sim=simulate(p,t);
+      queryT=tempAtDepth(sim,p,p.depth);
+      ans=`<strong>Tiempo necesario:</strong> ${fmt(t,2)} s (${fmt(t/60,2)} min)<br><strong>Temperatura objetivo:</strong> ${fmt(target,2)} °C<br><strong>Profundidad:</strong> ${fmt(p.depth,4)} m desde la superficie<br><br><span class="small">El tiempo se obtuvo por búsqueda iterativa usando el mismo modelo transitorio.</span>`;
+      const profile=profileFromSim(sim,p);
+      drawProfile(profile,p,p.depth,queryT); makeTable(profile);
+    }
+    const Fo=alpha*t/(p.L*p.L);
+    $('biOut').innerText=fmt(Bi,4);
+    $('biClass').innerHTML=`<span class="pill ${bc.cls}">${bc.txt}</span>`;
+    $('foOut').innerText=fmt(Fo,4);
+    $('alphaOut').innerText=fmt(alpha,4);
+    $('lcOut').innerText=fmt(p.L,4)+' m';
+    $('answerBox').innerHTML=ans;
+    $('methodBox').innerHTML=`<strong>Método recomendado</strong><br>${bc.method}<br><br><span class="small"><strong>Observación:</strong> para placa de dos caras expuestas se calcula desde el plano medio hacia una superficie. Para placa con una cara aislada se calcula desde la cara aislada hacia la cara expuesta.</span>`;
+  }catch(e){
+    $('answerBox').innerHTML='<strong>Error:</strong> '+e.message;
+  }
+}
+
+runSimulation();
+</script>
+</body>
+</html>
