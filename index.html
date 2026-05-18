@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fenómenos de Transporte – Simuladores y Lecciones</title>
+
+  <style>
+    :root {
+      --azul: #002b5c;
+      --azul-claro: #0057a8;
+      --dorado: #f2b705;
+      --fondo: #f4f7fb;
+      --texto: #1d2433;
+      --tarjeta: #ffffff;
+      --borde: #d9e2ef;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #f7faff, #eef4fb);
+      color: var(--texto);
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--azul), #01498f);
+      color: white;
+      padding: 32px 24px;
+      border-bottom: 5px solid var(--dorado);
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 32px;
+    }
+
+    header p {
+      margin: 8px 0 0;
+      font-size: 16px;
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 32px auto;
+      padding: 0 20px;
+    }
+
+    .intro {
+      background: white;
+      border: 1px solid var(--borde);
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(0, 43, 92, 0.08);
+    }
+
+    .intro h2 {
+      margin-top: 0;
+      color: var(--azul);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--tarjeta);
+      border: 1px solid var(--borde);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 8px 24px rgba(0, 43, 92, 0.08);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 28px rgba(0, 43, 92, 0.14);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      color: var(--azul);
+      font-size: 20px;
+    }
+
+    .card p {
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .card a {
+      display: inline-block;
+      margin-top: 10px;
+      background: var(--azul-claro);
+      color: white;
+      text-decoration: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .card a:hover {
+      background: var(--azul);
+    }
+
+    footer {
+      text-align: center;
+      color: #667085;
+      font-size: 13px;
+      padding: 24px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Fenómenos de Transporte</h1>
+    <p>Simuladores y lecciones interactivas</p>
+    <p><strong>Prof. Dr. Juan M. Alderete – Fundación UADE</strong></p>
+  </header>
+
+  <main>
+    <section class="intro">
+      <h2>Repositorio de recursos interactivos</h2>
+      <p>
+        Este espacio reúne simuladores, calculadoras y lecciones interactivas
+        desarrolladas para acompañar el aprendizaje de Fenómenos de Transporte.
+      </p>
+    </section>
+
+    <section class="grid">
+
+      <div class="card">
+        <h2>Lección interactiva: Transferencia de Materia</h2>
+        <p>
+          Recorrido guiado sobre transferencia de materia, con explicación conceptual,
+          ejemplos, preguntas autocorregidas, guardado de sesión e informe de desempeño.
+        </p>
+        <a href="LTM.html">Abrir lección</a>
+      </div>
+
+      <div class="card">
+        <h2>Simulador T60D intercambiadores</h2>
+        <p>
+          Simulador aplicado al análisis de intercambiadores de calor.
+        </p>
+        <a href="ST60D.html">Abrir simulador</a>
+      </div>
+
+      <div class="card">
+        <h2>Simulador TETENE</h2>
+        <p>
+          Simulador interactivo para transferencia de energía térmica en estado no estacionario.
+        </p>
+        <a href="STETENE2.html">Abrir simulador</a>
+      </div>
+
+    </section>
+  </main>
+
+  <footer>
+    Fenómenos de Transporte – Fundación UADE
+  </footer>
+</body>
+</html>
