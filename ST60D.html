@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador T60D de intercambiadores de calor - v4</title>
+  <style>
+    :root {
+      --granate: #7b1e3a;
+      --granate-oscuro: #561329;
+      --gris-fondo: #f5f6f8;
+      --gris-borde: #d9dce3;
+      --gris-texto: #2f3640;
+      --azul: #1f6f9f;
+      --verde: #1d7f54;
+      --rojo: #a53636;
+      --blanco: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Verdana, Arial, sans-serif;
+      background: var(--gris-fondo);
+      color: var(--gris-texto);
+      line-height: 1.45;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--granate), var(--granate-oscuro));
+      color: white;
+      padding: 24px 32px;
+      border-bottom: 5px solid #c8a15a;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 1.55rem;
+      font-weight: 700;
+    }
+
+    header p {
+      margin: 0;
+      max-width: 1000px;
+      font-size: 0.95rem;
+      opacity: 0.96;
+    }
+
+    main {
+      max-width: 1280px;
+      margin: 24px auto 48px;
+      padding: 0 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--blanco);
+      border: 1px solid var(--gris-borde);
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(20, 25, 35, 0.06);
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    .card h2 {
+      margin: 0 0 14px;
+      color: var(--granate);
+      font-size: 1.15rem;
+    }
+
+    .card h3 {
+      margin: 18px 0 10px;
+      font-size: 1rem;
+      color: var(--granate-oscuro);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.83rem;
+      font-weight: 700;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #c7ccd6;
+      border-radius: 9px;
+      background: white;
+      color: var(--gris-texto);
+      font-size: 0.92rem;
+    }
+
+    input:focus, select:focus {
+      outline: 3px solid rgba(123, 30, 58, 0.16);
+      border-color: var(--granate);
+    }
+
+    .note {
+      background: #fff7e6;
+      border: 1px solid #f0d49b;
+      border-left: 5px solid #c8a15a;
+      padding: 11px 12px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      margin-top: 12px;
+    }
+
+    .note strong {
+      color: var(--granate-oscuro);
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: none;
+      border-radius: 9px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .primary {
+      background: var(--granate);
+      color: white;
+    }
+
+    .secondary {
+      background: #e8eaf0;
+      color: #242936;
+    }
+
+    .danger {
+      background: #f4dfdf;
+      color: var(--rojo);
+    }
+
+    button:hover {
+      filter: brightness(0.97);
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 780px) {
+      .results {
+        grid-template-columns: repeat(2, minmax(150px, 1fr));
+      }
+    }
+
+    @media (max-width: 460px) {
+      .results {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .metric {
+      border: 1px solid var(--gris-borde);
+      background: #fafbfc;
+      border-radius: 12px;
+      padding: 13px;
+      min-height: 88px;
+    }
+
+    .metric .label {
+      font-size: 0.78rem;
+      color: #596272;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .metric .value {
+      font-size: 1.25rem;
+      color: #18202f;
+      font-weight: 800;
+    }
+
+    .metric .unit {
+      font-size: 0.78rem;
+      color: #596272;
+      margin-top: 2px;
+    }
+
+    .equations {
+      font-family: "Cambria Math", "Times New Roman", serif;
+      background: #f9fafc;
+      border: 1px solid var(--gris-borde);
+      border-radius: 12px;
+      padding: 14px;
+      overflow-x: auto;
+      font-size: 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid var(--gris-borde);
+      padding: 8px 9px;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    th {
+      background: var(--granate);
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #fafafa;
+    }
+
+    .table-wrap {
+      max-height: 390px;
+      overflow: auto;
+      border: 1px solid var(--gris-borde);
+      border-radius: 12px;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 0.86rem;
+      color: var(--verde);
+      font-weight: 700;
+      min-height: 1.2em;
+    }
+
+    .warning {
+      color: var(--rojo);
+      font-weight: 700;
+    }
+
+    .diagram {
+      border: 1px solid var(--gris-borde);
+      border-radius: 14px;
+      background: #fbfcfd;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .small {
+      font-size: 0.82rem;
+      color: #596272;
+    }
+
+    footer {
+      max-width: 1280px;
+      margin: 0 auto 32px;
+      padding: 0 16px;
+      color: #606878;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Simulador T60D de intercambiadores de calor - v4</h1>
+    <p>
+      Versión didáctica para comparar intercambiadores, sentidos de flujo y condiciones de operación.
+      Esta versión agrega selector de <strong>co-corriente / contracorriente</strong> también para el intercambiador de <strong>tubo y coraza</strong>.
+    </p>
+  </header>
+
+  <main>
+    <div class="grid">
+      <section>
+        <div class="card">
+          <h2>Datos de operación</h2>
+
+          <div class="form-grid">
+            <div class="field full">
+              <label for="equipo">Tipo de intercambiador</label>
+              <select id="equipo">
+                <option value="doble_tubo">Tubo doble / tubos concéntricos</option>
+                <option value="tubo_coraza" selected>Tubo y coraza</option>
+                <option value="placas">Placas</option>
+              </select>
+            </div>
+
+            <div class="field full">
+              <label for="sentido">Sentido de flujo</label>
+              <select id="sentido">
+                <option value="contracorriente" selected>Contracorriente</option>
+                <option value="cocorriente">Co-corriente</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="Th_in">T caliente entrada, T<sub>h,e</sub> [°C]</label>
+              <input id="Th_in" type="number" step="0.1" value="75" />
+            </div>
+
+            <div class="field">
+              <label for="Tc_in">T fría entrada, T<sub>c,e</sub> [°C]</label>
+              <input id="Tc_in" type="number" step="0.1" value="20" />
+            </div>
+
+            <div class="field">
+              <label for="mh">Caudal caliente, ṁ<sub>h</sub> [kg/s]</label>
+              <input id="mh" type="number" step="0.001" value="0.080" />
+            </div>
+
+            <div class="field">
+              <label for="mc">Caudal frío, ṁ<sub>c</sub> [kg/s]</label>
+              <input id="mc" type="number" step="0.001" value="0.100" />
+            </div>
+
+            <div class="field">
+              <label for="cph">c<sub>p,h</sub> [kJ/(kg·K)]</label>
+              <input id="cph" type="number" step="0.001" value="4.18" />
+            </div>
+
+            <div class="field">
+              <label for="cpc">c<sub>p,c</sub> [kJ/(kg·K)]</label>
+              <input id="cpc" type="number" step="0.001" value="4.18" />
+            </div>
+
+            <div class="field">
+              <label for="U">Coeficiente global, U [W/(m²·K)]</label>
+              <input id="U" type="number" step="1" value="600" />
+            </div>
+
+            <div class="field">
+              <label for="A">Área de intercambio, A [m²]</label>
+              <input id="A" type="number" step="0.01" value="1.20" />
+            </div>
+
+            <div class="field">
+              <label for="perdida">Pérdida térmica [% de Q]</label>
+              <input id="perdida" type="number" step="0.1" value="0" />
+            </div>
+
+            <div class="field">
+              <label for="nombreCorrida">Nombre de corrida</label>
+              <input id="nombreCorrida" type="text" value="Corrida 1" />
+            </div>
+          </div>
+
+          <div id="notaEquipo" class="note"></div>
+
+          <div class="buttons">
+            <button class="primary" onclick="calcular()">Calcular</button>
+            <button class="secondary" onclick="guardarCorrida()">Guardar corrida</button>
+            <button class="secondary" onclick="copiarTabla()">Copiar tabla</button>
+            <button class="danger" onclick="reiniciar()">Reiniciar</button>
+          </div>
+
+          <div id="status" class="status"></div>
+        </div>
+
+        <div class="card">
+          <h2>Esquema de flujo</h2>
+          <div class="diagram">
+            <svg viewBox="0 0 820 300" role="img" aria-label="Esquema del intercambiador">
+              <defs>
+                <marker id="arrowHot" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                  <path d="M0,0 L0,6 L9,3 z" fill="#a53636"></path>
+                </marker>
+                <marker id="arrowCold" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                  <path d="M0,0 L0,6 L9,3 z" fill="#1f6f9f"></path>
+                </marker>
+              </defs>
+              <rect x="150" y="85" width="520" height="130" rx="32" fill="#eef1f6" stroke="#7b1e3a" stroke-width="4"></rect>
+              <line id="hotLine" x1="90" y1="150" x2="730" y2="150" stroke="#a53636" stroke-width="12" stroke-linecap="round" marker-end="url(#arrowHot)"></line>
+              <line id="coldLine" x1="730" y1="205" x2="90" y2="205" stroke="#1f6f9f" stroke-width="12" stroke-linecap="round" marker-end="url(#arrowCold)"></line>
+              <text id="equipoTxt" x="410" y="125" text-anchor="middle" font-family="Verdana" font-size="24" fill="#561329" font-weight="700">Tubo y coraza</text>
+              <text id="flujoTxt" x="410" y="260" text-anchor="middle" font-family="Verdana" font-size="22" fill="#2f3640">Contracorriente</text>
+              <text id="hotInTxt" x="80" y="132" text-anchor="middle" font-family="Verdana" font-size="17" fill="#a53636" font-weight="700">Caliente entra</text>
+              <text id="hotOutTxt" x="740" y="132" text-anchor="middle" font-family="Verdana" font-size="17" fill="#a53636" font-weight="700">Caliente sale</text>
+              <text id="coldInTxt" x="745" y="232" text-anchor="middle" font-family="Verdana" font-size="17" fill="#1f6f9f" font-weight="700">Fría entra</text>
+              <text id="coldOutTxt" x="76" y="232" text-anchor="middle" font-family="Verdana" font-size="17" fill="#1f6f9f" font-weight="700">Fría sale</text>
+            </svg>
+          </div>
+          <p class="small">
+            El esquema se actualiza al cambiar el sentido de flujo. En tubo y coraza se permite usar el equipo como modelo didáctico idealizado en co-corriente o contracorriente.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <div class="card">
+          <h2>Resultados de la corrida actual</h2>
+          <div class="results">
+            <div class="metric">
+              <div class="label">T caliente salida, T<sub>h,s</sub></div>
+              <div id="Th_out" class="value">—</div>
+              <div class="unit">°C</div>
+            </div>
+            <div class="metric">
+              <div class="label">T fría salida, T<sub>c,s</sub></div>
+              <div id="Tc_out" class="value">—</div>
+              <div class="unit">°C</div>
+            </div>
+            <div class="metric">
+              <div class="label">Calor útil transferido, Q</div>
+              <div id="Q" class="value">—</div>
+              <div class="unit">kW</div>
+            </div>
+            <div class="metric">
+              <div class="label">Efectividad, ε</div>
+              <div id="epsilon" class="value">—</div>
+              <div class="unit">adimensional</div>
+            </div>
+            <div class="metric">
+              <div class="label">NTU</div>
+              <div id="NTU" class="value">—</div>
+              <div class="unit">adimensional</div>
+            </div>
+            <div class="metric">
+              <div class="label">C<sub>r</sub> = C<sub>mín</sub>/C<sub>máx</sub></div>
+              <div id="Cr" class="value">—</div>
+              <div class="unit">adimensional</div>
+            </div>
+            <div class="metric">
+              <div class="label">ΔT<sub>ml</sub></div>
+              <div id="DTml" class="value">—</div>
+              <div class="unit">K</div>
+            </div>
+            <div class="metric">
+              <div class="label">U calculado desde Q/Área</div>
+              <div id="Ucalc" class="value">—</div>
+              <div class="unit">W/(m²·K)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Criterio de cálculo usado</h2>
+          <div id="ecuaciones" class="equations">
+            Elegí condiciones y presioná calcular.
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Tabla comparativa de corridas</h2>
+          <div class="table-wrap">
+            <table id="tabla">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Corrida</th>
+                  <th>Equipo</th>
+                  <th>Flujo</th>
+                  <th>T<sub>h,e</sub></th>
+                  <th>T<sub>h,s</sub></th>
+                  <th>T<sub>c,e</sub></th>
+                  <th>T<sub>c,s</sub></th>
+                  <th>ṁ<sub>h</sub></th>
+                  <th>ṁ<sub>c</sub></th>
+                  <th>Q [kW]</th>
+                  <th>ε</th>
+                  <th>NTU</th>
+                  <th>ΔT<sub>ml</sub></th>
+                  <th>U [W/m²K]</th>
+                  <th>Pérdida [%]</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    Simulador educativo. Para un diseño industrial de tubo y coraza multipaso debe incorporarse el factor de corrección F, la geometría real, ensuciamiento, pérdidas de carga y arreglo de pasos.
+  </footer>
+
+  <script>
+    let ultimaCorrida = null;
+    let corridas = [];
+
+    const $ = (id) => document.getElementById(id);
+
+    const nombresEquipo = {
+      doble_tubo: "Tubo doble",
+      tubo_coraza: "Tubo y coraza",
+      placas: "Placas"
+    };
+
+    const nombresFlujo = {
+      cocorriente: "Co-corriente",
+      contracorriente: "Contracorriente"
+    };
+
+    function num(id) {
+      const valor = Number($(id).value);
+      if (!Number.isFinite(valor)) {
+        throw new Error("El campo " + id + " no contiene un número válido.");
+      }
+      return valor;
+    }
+
+    function fmt(x, dec = 2) {
+      if (!Number.isFinite(x)) return "—";
+      return x.toLocaleString("es-AR", {
+        minimumFractionDigits: dec,
+        maximumFractionDigits: dec
+      });
+    }
+
+    function fmtRaw(x, dec = 4) {
+      if (!Number.isFinite(x)) return "";
+      return Number(x).toFixed(dec);
+    }
+
+    function efectividad(NTU, Cr, sentido) {
+      if (NTU <= 0) return 0;
+
+      if (sentido === "cocorriente") {
+        return (1 - Math.exp(-NTU * (1 + Cr))) / (1 + Cr);
+      }
+
+      if (Math.abs(1 - Cr) < 1e-9) {
+        return NTU / (1 + NTU);
+      }
+
+      const expTerm = Math.exp(-NTU * (1 - Cr));
+      return (1 - expTerm) / (1 - Cr * expTerm);
+    }
+
+    function lmtd(dt1, dt2) {
+      if (dt1 <= 0 || dt2 <= 0) return NaN;
+      if (Math.abs(dt1 - dt2) < 1e-9) return dt1;
+      return (dt1 - dt2) / Math.log(dt1 / dt2);
+    }
+
+    function calcularDeltaTml(sentido, Th_in, Th_out, Tc_in, Tc_out) {
+      let dt1, dt2;
+
+      if (sentido === "cocorriente") {
+        dt1 = Th_in - Tc_in;
+        dt2 = Th_out - Tc_out;
+      } else {
+        dt1 = Th_in - Tc_out;
+        dt2 = Th_out - Tc_in;
+      }
+
+      return {
+        dt1,
+        dt2,
+        DTml: lmtd(dt1, dt2)
+      };
+    }
+
+    function validarDatos(d) {
+      if (d.Th_in <= d.Tc_in) {
+        throw new Error("La temperatura de entrada caliente debe ser mayor que la temperatura de entrada fría.");
+      }
+      ["mh", "mc", "cph", "cpc", "U", "A"].forEach(k => {
+        if (d[k] <= 0) throw new Error("El campo " + k + " debe ser mayor que cero.");
+      });
+      if (d.perdida < 0 || d.perdida >= 100) {
+        throw new Error("La pérdida térmica debe estar entre 0 y menor que 100%.");
+      }
+    }
+
+    function calcular() {
+      try {
+        const d = {
+          equipo: $("equipo").value,
+          sentido: $("sentido").value,
+          Th_in: num("Th_in"),
+          Tc_in: num("Tc_in"),
+          mh: num("mh"),
+          mc: num("mc"),
+          cph: num("cph"),
+          cpc: num("cpc"),
+          U: num("U"),
+          A: num("A"),
+          perdida: num("perdida"),
+          nombre: $("nombreCorrida").value.trim() || ("Corrida " + (corridas.length + 1))
+        };
+
+        validarDatos(d);
+
+        const Ch = d.mh * d.cph; // kW/K
+        const Cc = d.mc * d.cpc; // kW/K
+        const Cmin = Math.min(Ch, Cc);
+        const Cmax = Math.max(Ch, Cc);
+        const Cr = Cmin / Cmax;
+        const UA = d.U * d.A / 1000; // kW/K
+        const NTU = UA / Cmin;
+
+        const epsIdeal = efectividad(NTU, Cr, d.sentido);
+        const qMax = Cmin * (d.Th_in - d.Tc_in);
+        const qSinPerdida = epsIdeal * qMax;
+        const factorUtil = 1 - d.perdida / 100;
+        const Q = qSinPerdida * factorUtil;
+
+        const Th_out = d.Th_in - Q / Ch;
+        const Tc_out = d.Tc_in + Q / Cc;
+
+        const deltas = calcularDeltaTml(d.sentido, d.Th_in, Th_out, d.Tc_in, Tc_out);
+        const Ucalc = Q * 1000 / (d.A * deltas.DTml);
+
+        const corrida = {
+          ...d,
+          Ch,
+          Cc,
+          Cmin,
+          Cmax,
+          Cr,
+          UA,
+          NTU,
+          epsilon: epsIdeal * factorUtil,
+          Q,
+          qMax,
+          Th_out,
+          Tc_out,
+          dt1: deltas.dt1,
+          dt2: deltas.dt2,
+          DTml: deltas.DTml,
+          Ucalc
+        };
+
+        ultimaCorrida = corrida;
+        mostrarResultados(corrida);
+        actualizarEsquema();
+        $("status").textContent = "Cálculo actualizado.";
+      } catch (err) {
+        $("status").innerHTML = '<span class="warning">' + err.message + '</span>';
+      }
+    }
+
+    function mostrarResultados(r) {
+      $("Th_out").textContent = fmt(r.Th_out, 2);
+      $("Tc_out").textContent = fmt(r.Tc_out, 2);
+      $("Q").textContent = fmt(r.Q, 3);
+      $("epsilon").textContent = fmt(r.epsilon, 3);
+      $("NTU").textContent = fmt(r.NTU, 3);
+      $("Cr").textContent = fmt(r.Cr, 3);
+      $("DTml").textContent = fmt(r.DTml, 2);
+      $("Ucalc").textContent = fmt(r.Ucalc, 1);
+
+      const flujo = nombresFlujo[r.sentido];
+      const equipo = nombresEquipo[r.equipo];
+
+      $("ecuaciones").innerHTML = `
+        <p><strong>Equipo:</strong> ${equipo}. <strong>Sentido de flujo:</strong> ${flujo}.</p>
+        <p>C<sub>h</sub> = ṁ<sub>h</sub> c<sub>p,h</sub> = ${fmt(r.Ch, 3)} kW/K</p>
+        <p>C<sub>c</sub> = ṁ<sub>c</sub> c<sub>p,c</sub> = ${fmt(r.Cc, 3)} kW/K</p>
+        <p>C<sub>mín</sub> = ${fmt(r.Cmin, 3)} kW/K &nbsp;&nbsp; C<sub>máx</sub> = ${fmt(r.Cmax, 3)} kW/K &nbsp;&nbsp; C<sub>r</sub> = ${fmt(r.Cr, 3)}</p>
+        <p>NTU = UA/C<sub>mín</sub> = ${fmt(r.NTU, 3)}</p>
+        <p>${formulaEfectividad(r.sentido)}</p>
+        <p>Q<sub>máx</sub> = C<sub>mín</sub>(T<sub>h,e</sub> - T<sub>c,e</sub>) = ${fmt(r.qMax, 3)} kW</p>
+        <p>Q = ε Q<sub>máx</sub> = ${fmt(r.Q, 3)} kW ${r.perdida > 0 ? "(ya descontada la pérdida térmica)" : ""}</p>
+        <p>T<sub>h,s</sub> = T<sub>h,e</sub> - Q/C<sub>h</sub> = ${fmt(r.Th_out, 2)} °C</p>
+        <p>T<sub>c,s</sub> = T<sub>c,e</sub> + Q/C<sub>c</sub> = ${fmt(r.Tc_out, 2)} °C</p>
+        <p>Para ${flujo}: ΔT<sub>1</sub> = ${fmt(r.dt1, 2)} K, ΔT<sub>2</sub> = ${fmt(r.dt2, 2)} K, ΔT<sub>ml</sub> = ${fmt(r.DTml, 2)} K.</p>
+      `;
+    }
+
+    function formulaEfectividad(sentido) {
+      if (sentido === "cocorriente") {
+        return "Co-corriente: ε = [1 − exp(−NTU(1+C<sub>r</sub>))]/(1+C<sub>r</sub>)";
+      }
+      return "Contracorriente: ε = [1 − exp(−NTU(1−C<sub>r</sub>))]/[1 − C<sub>r</sub> exp(−NTU(1−C<sub>r</sub>))]";
+    }
+
+    function guardarCorrida() {
+      if (!ultimaCorrida) calcular();
+      if (!ultimaCorrida) return;
+
+      corridas.push({ ...ultimaCorrida, indice: corridas.length + 1 });
+      renderTabla();
+      $("nombreCorrida").value = "Corrida " + (corridas.length + 1);
+      $("status").textContent = "Corrida guardada en la tabla.";
+    }
+
+    function renderTabla() {
+      const tbody = $("tabla").querySelector("tbody");
+      tbody.innerHTML = "";
+
+      corridas.forEach(r => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.indice}</td>
+          <td>${escapeHTML(r.nombre)}</td>
+          <td>${nombresEquipo[r.equipo]}</td>
+          <td>${nombresFlujo[r.sentido]}</td>
+          <td>${fmt(r.Th_in, 2)}</td>
+          <td>${fmt(r.Th_out, 2)}</td>
+          <td>${fmt(r.Tc_in, 2)}</td>
+          <td>${fmt(r.Tc_out, 2)}</td>
+          <td>${fmt(r.mh, 3)}</td>
+          <td>${fmt(r.mc, 3)}</td>
+          <td>${fmt(r.Q, 3)}</td>
+          <td>${fmt(r.epsilon, 3)}</td>
+          <td>${fmt(r.NTU, 3)}</td>
+          <td>${fmt(r.DTml, 2)}</td>
+          <td>${fmt(r.Ucalc, 1)}</td>
+          <td>${fmt(r.perdida, 1)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function tablaTSV() {
+      const headers = [
+        "#", "Corrida", "Equipo", "Flujo", "Th,e [°C]", "Th,s [°C]",
+        "Tc,e [°C]", "Tc,s [°C]", "mh [kg/s]", "mc [kg/s]",
+        "Q [kW]", "epsilon", "NTU", "DTml [K]", "Ucalc [W/m²K]", "perdida [%]"
+      ];
+
+      const rows = corridas.map(r => [
+        r.indice,
+        r.nombre,
+        nombresEquipo[r.equipo],
+        nombresFlujo[r.sentido],
+        fmtRaw(r.Th_in, 2),
+        fmtRaw(r.Th_out, 2),
+        fmtRaw(r.Tc_in, 2),
+        fmtRaw(r.Tc_out, 2),
+        fmtRaw(r.mh, 4),
+        fmtRaw(r.mc, 4),
+        fmtRaw(r.Q, 4),
+        fmtRaw(r.epsilon, 4),
+        fmtRaw(r.NTU, 4),
+        fmtRaw(r.DTml, 4),
+        fmtRaw(r.Ucalc, 2),
+        fmtRaw(r.perdida, 2)
+      ]);
+
+      return [headers, ...rows].map(row => row.join("\t")).join("\n");
+    }
+
+    async function copiarTabla() {
+      if (corridas.length === 0) {
+        $("status").innerHTML = '<span class="warning">No hay corridas guardadas para copiar.</span>';
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(tablaTSV());
+        $("status").textContent = "Tabla copiada. Podés pegarla en Excel, Sheets o Moodle.";
+      } catch (err) {
+        const area = document.createElement("textarea");
+        area.value = tablaTSV();
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand("copy");
+        area.remove();
+        $("status").textContent = "Tabla copiada.";
+      }
+    }
+
+    function reiniciar() {
+      corridas = [];
+      ultimaCorrida = null;
+      renderTabla();
+
+      ["Th_out", "Tc_out", "Q", "epsilon", "NTU", "Cr", "DTml", "Ucalc"].forEach(id => {
+        $(id).textContent = "—";
+      });
+
+      $("ecuaciones").textContent = "Elegí condiciones y presioná calcular.";
+      $("status").textContent = "Tabla y resultados reiniciados.";
+    }
+
+    function actualizarNotaEquipo() {
+      const equipo = $("equipo").value;
+      const sentido = $("sentido").value;
+
+      if (equipo === "tubo_coraza") {
+        $("notaEquipo").innerHTML =
+          `<strong>Tubo y coraza:</strong> esta versión permite seleccionar <strong>${nombresFlujo[sentido]}</strong>. 
+          Para uso didáctico se calcula como flujo ideal. Si se desea representar un equipo multipaso real, debe agregarse el factor de corrección F.`;
+      } else if (equipo === "placas") {
+        $("notaEquipo").innerHTML =
+          `<strong>Placas:</strong> se usa el mismo modelo térmico ideal para comparar co-corriente y contracorriente.`;
+      } else {
+        $("notaEquipo").innerHTML =
+          `<strong>Tubo doble:</strong> el selector de flujo cambia tanto la efectividad como la ΔT<sub>ml</sub>.`;
+      }
+    }
+
+    function actualizarEsquema() {
+      const equipo = $("equipo").value;
+      const sentido = $("sentido").value;
+
+      $("equipoTxt").textContent = nombresEquipo[equipo];
+      $("flujoTxt").textContent = nombresFlujo[sentido];
+
+      const coldLine = $("coldLine");
+      const coldInTxt = $("coldInTxt");
+      const coldOutTxt = $("coldOutTxt");
+
+      if (sentido === "cocorriente") {
+        coldLine.setAttribute("x1", "90");
+        coldLine.setAttribute("x2", "730");
+        coldInTxt.setAttribute("x", "80");
+        coldInTxt.textContent = "Fría entra";
+        coldOutTxt.setAttribute("x", "745");
+        coldOutTxt.textContent = "Fría sale";
+      } else {
+        coldLine.setAttribute("x1", "730");
+        coldLine.setAttribute("x2", "90");
+        coldInTxt.setAttribute("x", "745");
+        coldInTxt.textContent = "Fría entra";
+        coldOutTxt.setAttribute("x", "76");
+        coldOutTxt.textContent = "Fría sale";
+      }
+
+      actualizarNotaEquipo();
+    }
+
+    function escapeHTML(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    $("equipo").addEventListener("change", () => {
+      actualizarEsquema();
+      calcular();
+    });
+
+    $("sentido").addEventListener("change", () => {
+      actualizarEsquema();
+      calcular();
+    });
+
+    ["Th_in", "Tc_in", "mh", "mc", "cph", "cpc", "U", "A", "perdida"].forEach(id => {
+      $(id).addEventListener("input", () => {
+        if (ultimaCorrida) calcular();
+      });
+    });
+
+    actualizarEsquema();
+    calcular();
+  </script>
+</body>
+</html>
